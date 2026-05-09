@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Consulta de Certificados</title>
+    <link rel="icon" href="logo 2.png">
+
+    <style>
+        html { font-size: 82%; }
+        * { 
+            font-family: Arial, sans-serif; 
+            box-sizing: border-box; 
+        }
+        body { 
+            margin: 0; 
+            background: white; 
+            overflow-x: hidden;
+        }
+
+        /* ==================== SIDEBAR ==================== */
+        .sidebar { 
+            width: 260px; 
+            height: 100vh; 
+            background-color: #26323a; 
+            color: white; 
+            position: fixed; 
+            left: 0; 
+            top: 0; 
+            box-shadow: 2px 0 5px rgba(0,0,0,0.2); 
+            transition: width 0.4s ease;
+            z-index: 1000;
+            overflow: hidden;
+        }
+
+        /* Sidebar mini: solo iconos visibles */
+        .sidebar.mini {
+            width: 60px;
+        }
+
+        /* Ocultar textos cuando está en mini */
+        .sidebar.mini .logo-text,
+        .sidebar.mini .menu-title,
+        .sidebar.mini .menu-item span {
+            display: none;
+        }
+
+        /* Centrar logo en mini */
+        .sidebar.mini .logo {
+            justify-content: center;
+            padding: 15px 0;
+            width: 100%;
+            min-width: unset;
+        }
+
+        /* Centrar ícono del menu-item en mini */
+        .sidebar.mini .menu-item {
+            justify-content: center;
+            padding: 12px 0;
+        }
+
+        @media (max-width: 768px) {
+            .sidebar { 
+                width: 0; 
+                overflow: hidden;
+            }
+            .sidebar.abierto { 
+                width: 260px; 
+            }
+            .sidebar.mini { width: 0; }
+        }
+
+        /* Overlay oscuro detrás del sidebar en móvil */
+        .overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 999;
+        }
+        .overlay.activo { display: block; }
+
+        /* ==================== BOTÓN HAMBURGUESA ==================== */
+        .menu-toggle { 
+            position: absolute; 
+            top: 12px; 
+            left: 20px; 
+            cursor: pointer; 
+            z-index: 1010;
+            padding: 8px;
+            transition: left 0.4s ease;
+        }
+
+        /* En escritorio: el toggle se mueve con el sidebar mini */
+        .sidebar.mini ~ .main-wrapper .menu-toggle {
+            left: 20px;
+        }
+
+        .linea { 
+            width: 22px; 
+            height: 3px; 
+            background-color: #26323a; 
+            margin: 4px 0; 
+            border-radius: 2px;
+        }
+
+        /* En móvil: el toggle flota fijo en pantalla, no dentro del wrapper */
+        @media (max-width: 768px) {
+            .menu-toggle {
+                position: fixed;
+                top: 12px;
+                left: 20px;
+                transition: left 0.4s ease;
+                z-index: 1020;
+            }
+            .menu-toggle.sidebar-abierto {
+                left: 272px; /* se mueve junto al sidebar abierto */
+            }
+        }
+
+        /* ==================== CONTENIDO DEL SIDEBAR ==================== */
+        .logo { 
+            display: flex; 
+            align-items: center; 
+            padding: 15px 12px; 
+            border-bottom: 1px solid #444; 
+            gap: 10px; 
+            text-decoration: none; 
+            cursor: pointer; 
+            transition: padding 0.3s ease;
+        }
+        .logo img { 
+            width: 32px; 
+            height: 32px; 
+            border-radius: 50%; 
+            background: white; 
+            padding: 2px; 
+            flex-shrink: 0;
+        }
+        .logo-text { 
+            color: #b0bec5; 
+            font-size: 16px; 
+            white-space: nowrap;
+            transition: opacity 0.3s ease;
+        }
+
+        .menu { 
+            padding: 15px 10px; 
+        }
+        .menu-title { 
+            font-size: 13px; 
+            color: #cfd8dc; 
+            margin-bottom: 10px;
+            white-space: nowrap;
+        }
+        .menu-item { 
+            display: flex; 
+            align-items: center; 
+            gap: 12px; 
+            padding: 12px 10px; 
+            color: white; 
+            text-decoration: none; 
+            border-radius: 4px; 
+            font-size: 14px; 
+            cursor: pointer; 
+            white-space: nowrap;
+            transition: padding 0.3s ease, justify-content 0.3s ease;
+        }
+        .menu-item img { 
+            width: 20px; 
+            height: 20px; 
+            filter: brightness(0) invert(0.7); 
+            flex-shrink: 0;
+        }
+        .menu-item:hover { 
+            background-color: #34424b; 
+        }
+
+        /* ==================== MAIN WRAPPER ==================== */
+        .main-wrapper { 
+            margin-left: 260px; 
+            transition: margin-left 0.4s ease; 
+            min-height: 100vh; 
+            display: flex; 
+            flex-direction: column; 
+            width: calc(100% - 260px);
+        }
+
+        .sidebar.mini ~ .main-wrapper {
+            margin-left: 60px;
+            width: calc(100% - 60px);
+        }
+
+        @media (max-width: 768px) {
+            .main-wrapper, .sidebar.mini ~ .main-wrapper {
+                margin-left: 0 !important;
+                width: 100%;
+            }
+        }
+
+        .top-white { 
+            height: 48px; 
+            background: white; 
+            position: relative; 
+            border-bottom: 1px solid #eee;
+        }
+
+        .contenido { 
+            background: #f1f3f6; 
+            padding: 25px 20px; 
+            flex: 1;
+        }
+
+        .titulo { font-size: 26px; color: #000; margin-bottom: 5px; }
+        .subtitulo { font-size: 13px; color: #777; margin-bottom: 18px; }
+
+        .buscador { 
+            display: flex; 
+            justify-content: center; 
+            margin-bottom: 20px; 
+            flex-wrap: wrap;
+            gap: 5px;
+        }
+        .buscador input, .buscador button { height: 40px; font-size: 16px; }
+        .buscador input { width: 400px; max-width: 100%; padding: 0 12px; border: 1px solid #ccc; border-right: none; border-radius: 4px 0 0 4px; }
+        .buscador button { padding: 0 24px; background: #1e73d8; color: white; border: none; border-radius: 0 4px 4px 0; cursor: pointer; }
+
+        .contenedor-cuadros { display: flex; gap: 20px; align-items: flex-start; }
+        .cuadro-participante { width: 260px; background: white; border-radius: 6px; border-top: 4px solid #1e73d8; box-shadow: 0 2px 6px rgba(0,0,0,0.1); padding-bottom: 25px; }
+        .cuadro-certificado { flex: 1; background: white; border-radius: 6px; border-top: 4px solid #f4c542; box-shadow: 0 2px 6px rgba(0,0,0,0.1); position: relative; overflow-x: auto; }
+
+        @media (max-width: 768px) {
+            .contenedor-cuadros {
+                flex-direction: column;
+            }
+            .cuadro-participante {
+                width: 100%;
+            }
+            .cuadro-certificado {
+                width: 100%;
+            }
+        }
+
+        .cuadro-titulo { font-size: 18px; padding: 10px; border-bottom: 1px solid #ddd; }
+        .icono { text-align: center; padding: 15px 0; }
+        .icono-img { width: 60px; }
+        .nombre { text-align: center; font-size: 18px; padding-bottom: 15px; }
+        .divisor { border-top: 1px solid #ddd; margin-bottom: 12px; }
+        .info-flex { display: flex; justify-content: space-between; padding: 0 10px; }
+        .info-box { width: 48%; text-align: center; padding: 12px 0; }
+        .info-box:first-child { border-right: 1px solid #ddd; }
+        .info-num { font-weight: bold; font-size: 16px; }
+        .info-label { font-size: 15px; margin-top: 5px; line-height: 1.2; }
+
+        .badge-cert { position: absolute; top: 12px; right: 15px; background: #6c757d; color: white; font-size: 12px; padding: 4px 10px; border-radius: 12px; font-weight: bold; }
+
+        .tabla-cert { width: 100%; border-collapse: collapse; min-width: 680px; }
+        .tabla-cert th { background: #f8f9fa; font-weight: 700; font-size: 14.5px; padding: 12px 8px; text-align: center; color: #1a1a1a; }
+        .tabla-cert td { border-bottom: 1px solid #ddd; padding: 10px 8px; text-align: center; font-size: 14px; color: #333; }
+
+        .btn-cert { background: #f4b400; border: none; padding: 9px 16px 9px 8px; cursor: pointer; border-radius: 4px; color: #333; font-size: 14px; font-weight: 500; }
+
+        .footer { 
+            background: #f1f3f6; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            padding: 0 20px; 
+            height: 50px; 
+            font-size: 15px; 
+            color: #555; 
+            border-top: 1px solid #ccc; 
+            margin-top: auto; 
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="overlay" id="overlay" onclick="cerrarSidebar()"></div>
+
+<div class="sidebar" id="sidebar">
+    <a class="logo" onclick="irAlServicio()">
+        <img src="logo.png">
+        <span class="logo-text">Consulta de Certificados</span>
+    </a>
+
+    <div class="menu">
+        <p class="menu-title">MENÚ</p>
+        <a class="menu-item" onclick="irAlServicio()">
+            <img src="imagen 1.png">
+            <span>Consulta de Participante</span>
+        </a>
+    </div>
+</div>
+
+<div class="main-wrapper">
+    <div class="top-white">
+        <div class="menu-toggle" onclick="toggleMenu()">
+            <div class="linea"></div>
+            <div class="linea"></div>
+            <div class="linea"></div>
+        </div>
+    </div>
+
+    <div class="contenido">
+        <div class="titulo">Verificación de Certificado</div>
+        <div style="display:flex; justify-content:center; margin-top:35px; margin-bottom: 20px;">
+            <div style="background:white; border-radius:6px; box-shadow:0 2px 6px rgba(0,0,0,0.1); padding: 20px 24px; max-width: 520px; width:100%; border-left: 4px solid #2a9d8f;">
+                <div style="display:flex; align-items:center; gap:8px; font-size:19px; font-weight:bold; margin-bottom:10px;">
+                    <span style="background:#222; color:white; border-radius:50%; width:24px; height:24px; display:inline-flex; align-items:center; justify-content:center; font-size:14px;">✔</span>
+                    Verificación de Certificado
+                </div>
+                <div style="font-size:15px; color:#333; line-height:1.6;">
+                    El certificado que está consultando fue emitido por el <b>Instituto Nacional de Formación Técnico Profesional (INFOTEP)</b> a la persona que se muestra a continuación.
+                </div>
+            </div>
+        </div>
+
+        <div class="contenedor-cuadros">
+            <div class="cuadro-participante">
+                <div class="cuadro-titulo">Participante</div>
+                <div class="icono">
+                    <img id="participante-img" class="icono-img">
+                </div>
+                <div id="participante-nombre" class="nombre"></div>
+                <div class="divisor"></div>
+                <div class="info-flex">
+                    <div class="info-box">
+                        <div id="participante-documento" class="info-num"></div>
+                        <div class="info-label">No.<br>Documento</div>
+                    </div>
+                    <div class="info-box">
+                        <div id="participante-matricula" class="info-num"></div>
+                        <div class="info-label">MATRÍCULA</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="cuadro-certificado">
+                <div class="cuadro-titulo">Certificados</div>
+                <div id="badge-cert" class="badge-cert"></div>
+
+                <table class="tabla-cert">
+                    <thead>
+                        <tr>
+                            <th>Capacitación</th>
+                            <th>Libro</th>
+                            <th>fol.</th>
+                            <th>No. Egresado</th>
+                            <th>Regional</th>
+                            <th>Ciudad</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabla-certificados"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">
+        <div><b onclick="irAlServicio()">Copyright © 2026</b> <a onclick="irAlServicio()" style="color:#1e73d8; cursor:pointer; text-decoration:none; transition: color 0.2s; font-weight:bold;" onmouseover="this.style.color='#1557b0'" onmouseout="this.style.color='#1e73d8'">Consulta de Certificados</a><span>. Reservados todos los derechos.</span></div>
+        <div><b>Versión V2-2026</b></div>
+    </div>
+</div>
+
+<script>
+function toggleMenu() {
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('overlay');
+    const toggle = document.querySelector('.menu-toggle');
+    const esMobil = window.innerWidth <= 768;
+
+    if (esMobil) {
+        sidebar.classList.toggle('abierto');
+        overlay.classList.toggle('activo');
+        toggle.classList.toggle('sidebar-abierto');
+    } else {
+        sidebar.classList.toggle('mini');
+    }
+}
+
+function cerrarSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('overlay');
+    const toggle = document.querySelector('.menu-toggle');
+    sidebar.classList.remove('abierto');
+    overlay.classList.remove('activo');
+    toggle.classList.remove('sidebar-abierto');
+}
+
+function irAlServicio() {
+    window.location.href = "https://servicios.infotep.gob.do/Certificados/Forms/Default.aspx";
+}
+
+function buscarCertificado() {
+    alert("Simulación activa");
+}
+
+const participante = {
+    nombre: "LIDIA POLANCO CRUZ",
+    documento: "001-0310710-8",
+    matricula: "2547835",
+    imagen: "imagen 2.png"
+};
+
+const certificado = {
+    lista: [
+       
+        { capacitacion: "GASTRONOMIA DOMINICANA", libro: "251", folio: "94", egresado: "248562", regional: "INFOTEP", ciudad: "SANTO DOMINGO", pdf: "https://serviciosinfotepgobdo.github.io/-.gob.do-Token-5BVS9403/" },
+        
+        
+    ]
+};
+
+function actualizarDatos() {
+    document.getElementById("participante-nombre").innerHTML = participante.nombre;
+    document.getElementById("participante-documento").innerHTML = participante.documento;
+    document.getElementById("participante-matricula").innerHTML = participante.matricula;
+    document.getElementById("participante-img").src = participante.imagen;
+
+    document.getElementById("badge-cert").innerHTML = certificado.lista.length + " Certificados";
+
+    const tbody = document.getElementById("tabla-certificados");
+    tbody.innerHTML = certificado.lista.map(c => `
+        <tr>
+            <td>${c.capacitacion}</td>
+            <td>${c.libro}</td>
+            <td>${c.folio}</td>
+            <td>${c.egresado}</td>
+            <td>${c.regional}</td>
+            <td>${c.ciudad}</td>
+            <td><button class="btn-cert" onclick="verPDF('${c.pdf}')" style="display:inline-flex; align-items:center; gap:0px;"><img src="imagen 3.png" style="width:16px; height:16px; margin-right:4px;">Ver Certificado</button></td>
+        </tr>
+    `).join("");
+}
+
+function verPDF(linkPDF) {
+    window.open(linkPDF, '_blank');
+}
+
+actualizarDatos();
+</script>
+
+</body>
+</html>
